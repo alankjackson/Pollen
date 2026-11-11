@@ -1,0 +1,46 @@
+---
+title: "Build daily report"
+author: "Alan Jackson"
+format: html
+---
+
+##    Make a report for the last week of measurements
+
+
+```{r}
+#| echo: false
+#| warning: false
+
+library(tidyverse)
+
+path <- "/home/ajackson/Dropbox/Rprojects/Curated_Data_Files/PollenAndMold/raw/"
+
+Categories <- tribble(~Type, ~Low, ~High, ~Category,
+                      "Weed",     0,      9, "Low",
+                      "Weed",    10,     49, "Medium",
+                      "Weed",    50,    499, "Heavy",
+                      "Weed",   500,  99999, "Extreme",
+                      "Grass",    0,      4, "Low",
+                      "Grass",    5,     19, "Medium",
+                      "Grass",   20,    199, "Heavy",
+                      "Grass",  200,  99999, "Extreme",
+                      "Tree",     0,     14, "Low",
+                      "Tree",    15,     89, "Medium",
+                      "Tree",    90,   1499, "Heavy",
+                      "Tree",  1500,  99999, "Extreme",
+                      "Mold",     0,   6499, "Low",
+                      "Mold",  6500,  12999, "Medium",
+                      "Mold", 13000,  49999, "Heavy",
+                      "Mold", 50000, 999999, "Extreme"
+                      )
+
+
+
+
+
+
+
+
+
+
+```

@@ -34,13 +34,85 @@ Categories <- tribble(~Type, ~Low, ~High, ~Category,
                       "Mold", 50000, 999999, "Extreme"
                       )
 
+```
 
+##    Read in files for the past week
 
+```{r}
+#| echo: false
+#| warning: false
 
+# 1. Generate the last 7 days and their file names
+dates <- as.character(Sys.Date() - 0:6)
+file_names <- paste0(path, "Summary_", dates, ".rds")
 
+# 2. Name the file vector so the dates are carried through the loop
+# This maps each file path to its corresponding date string
+file_names <- set_names(file_names, dates)
 
+# 3. Define the safe read function
+safe_read <- possibly(readRDS, otherwise = NULL)
 
+# 4. Read files, skip errors, and bind into a single data frame with a date column
+df <- map(file_names, safe_read) |> 
+  compact() |> 
+  list_rbind(names_to = "file_date") |> # Extracts the list names (dates) into a column
+  rename(Date=file_date) |> 
+  mutate(Date=ymd(Date)) |> 
+  mutate(Category=str_to_title(Category)) |> 
+  mutate(Status=replace_na(Status, "NONE"))
 
+#   Read today's detailed report
 
+Today_data <- safe_read(paste0(path, "Details_", as.character(Sys.Date()-1), ".rds"))
 
 ```
+
+##    Make the report
+
+```{r}
+#| echo: false
+#| warning: false
+
+df <- df %>%
+  mutate(
+    Height = case_when(
+      Status == "NONE"    ~ 1,
+      Status == "LOW"     ~ 2,
+      Status == "MEDIUM"  ~ 3,
+      Status == "HEAVY"   ~ 4,
+      Status == "EXTREME" ~ 5
+    ),
+    Status = factor(Status, levels = c("NONE", "LOW", "MEDIUM", "HEAVY", "EXTREME"))
+  )
+
+ggplot(df, aes(x = Date, y = Height, fill = Category)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  scale_x_date(
+    date_labels = "%a",     # "%a" for abbreviated day (Mon, Tue)
+    date_breaks = "1 day"   # Show a tick for every day
+  ) +
+  scale_y_continuous(
+    breaks = 1:5, 
+    labels = c("None", "Low", "Medium", "Heavy", "Extreme"),
+    limits = c(0, 5.5)
+  ) +
+  labs(
+    title = "Allergen Levels",
+    x = "Day of week",
+    y = "Damage Level",
+    fill = "Culprit"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "right"
+  )
+
+```
+
+
+
+
+
+

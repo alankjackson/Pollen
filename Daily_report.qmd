@@ -12,10 +12,11 @@ format: html
 #| warning: false
 
 library(tidyverse)
+library(gt)
 
 path <- "/home/ajackson/Dropbox/Rprojects/Curated_Data_Files/PollenAndMold/raw/"
 
-Categories <- tribble(~Type, ~Low, ~High, ~Category,
+Categories <- tribble(~Type, ~Low, ~High, ~Class,
                       "Weed",     0,      9, "Low",
                       "Weed",    10,     49, "Medium",
                       "Weed",    50,    499, "Heavy",
@@ -32,7 +33,8 @@ Categories <- tribble(~Type, ~Low, ~High, ~Category,
                       "Mold",  6500,  12999, "Medium",
                       "Mold", 13000,  49999, "Heavy",
                       "Mold", 50000, 999999, "Extreme"
-                      )
+                      )  |> 
+    pivot_wider(Type, values_from = c(Low, High), names_from = Class)
 
 ```
 
@@ -64,7 +66,7 @@ df <- map(file_names, safe_read) |>
 
 #   Read today's detailed report
 
-Today_data <- safe_read(paste0(path, "Details_", as.character(Sys.Date()-1), ".rds"))
+Today_data <- safe_read(paste0(path, "Details_", as.character(Sys.Date()), ".rds"))
 
 ```
 
@@ -86,7 +88,7 @@ df <- df %>%
     Status = factor(Status, levels = c("NONE", "LOW", "MEDIUM", "HEAVY", "EXTREME"))
   )
 
-ggplot(df, aes(x = Date, y = Height, fill = Category)) +
+plot <- ggplot(df, aes(x = Date, y = Height, fill = Category)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7) +
   scale_x_date(
     date_labels = "%a",     # "%a" for abbreviated day (Mon, Tue)
@@ -109,8 +111,50 @@ ggplot(df, aes(x = Date, y = Height, fill = Category)) +
     legend.position = "right"
   )
 
+plot
+
+ggsave(filename = "/tmp/allergen.jpg", plot = plot, 
+       width = 6, 
+       height = 4, 
+       units = "in", 
+       dpi = 300)
+
 ```
 
+##    Today's detailed data
+
+```{r}
+#| echo: false
+#| warning: false
+
+if (is.null(Today_data)) {
+  Today_data <- tribble(~Type, ~Count, ~Class,
+                        "No Data Today", 99999, "Tree" )
+}
+
+#   Strip out all but the MEDIUM and above
+
+gt_table <- Today_data |> 
+  full_join(x=_, Categories, by=join_by(Class == Type)) |> 
+  filter_out(is.na(Count)) |>  
+  filter_out(Count<1) |> 
+  filter_out(Count<Low_Medium) |> 
+  mutate(Range=case_when(
+    between(Count, Low_Low, High_Low) ~ "Low",
+    between(Count, Low_Medium, High_Medium) ~ "Medium",
+    between(Count, Low_Heavy, High_Heavy) ~ "Heavy",
+    between(Count, Low_Extreme, High_Extreme) ~ "Extreme",
+    .default = "Unk"
+  )) |> 
+  select(Class, Type, Count, Range) |> 
+  gt()
+
+gt_table
+
+gtsave(gt_table, filename = "/tmp/gt_table.png")  # PNG image
+
+
+```
 
 
 
